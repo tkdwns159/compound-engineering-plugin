@@ -22,6 +22,7 @@ const FILE_COMPONENT_MAP: Array<{ component: ReleaseComponent; prefixes: string[
       ".claude-plugin/plugin.json",
       ".cursor-plugin/plugin.json",
       ".codex-plugin/",
+      ".devin-plugin/",
       ".opencode/",
       ".pi/",
       "AGENTS.md",

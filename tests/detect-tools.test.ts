@@ -13,6 +13,7 @@ describe("detectInstalledTools", () => {
     await fs.mkdir(path.join(tempHome, ".codex"), { recursive: true })
     await fs.mkdir(path.join(tempHome, ".gemini"), { recursive: true })
     await fs.mkdir(path.join(tempHome, ".copilot"), { recursive: true })
+    await fs.mkdir(path.join(tempHome, ".config", "devin"), { recursive: true })
     delete process.env.OPENCODE_CONFIG_DIR
 
     const results = await detectInstalledTools(tempHome, tempCwd)
@@ -28,6 +29,10 @@ describe("detectInstalledTools", () => {
     const copilot = results.find((t) => t.name === "copilot")
     expect(copilot?.detected).toBe(true)
     expect(copilot?.reason).toContain(".copilot")
+
+    const devin = results.find((t) => t.name === "devin")
+    expect(devin?.detected).toBe(true)
+    expect(devin?.reason).toContain("devin")
 
     // Tools without directories should not be detected
     const opencode = results.find((t) => t.name === "opencode")
@@ -47,7 +52,7 @@ describe("detectInstalledTools", () => {
 
     const results = await detectInstalledTools(tempHome, tempCwd)
 
-    expect(results.length).toBe(7)
+    expect(results.length).toBe(8)
     for (const tool of results) {
       expect(tool.detected).toBe(false)
       expect(tool.reason).toBe("not found")

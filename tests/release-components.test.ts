@@ -32,6 +32,16 @@ describe("release component detection", () => {
     ])
   })
 
+  test("maps the Devin native manifest to the root plugin component", () => {
+    const components = detectComponentsFromFiles([
+      ".devin-plugin/plugin.json",
+    ])
+
+    expect(components.get("compound-engineering")).toEqual([
+      ".devin-plugin/plugin.json",
+    ])
+  })
+
   test("maps claude marketplace metadata without bumping plugin components", () => {
     const components = detectComponentsFromFiles([".claude-plugin/marketplace.json"])
     expect(components.get("marketplace")).toEqual([".claude-plugin/marketplace.json"])

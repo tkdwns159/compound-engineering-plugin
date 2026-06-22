@@ -68,6 +68,19 @@ async function makeFixtureRoot(): Promise<string> {
     path.join(root, "gemini-extension.json"),
     JSON.stringify({ version: "2.42.0" }, null, 2),
   )
+  await mkdir(path.join(root, ".devin-plugin"), { recursive: true })
+  await writeFile(
+    path.join(root, ".devin-plugin", "plugin.json"),
+    JSON.stringify(
+      {
+        name: "compound-engineering",
+        version: "2.42.0",
+        description: "old",
+      },
+      null,
+      2,
+    ),
+  )
   await writeFile(
     path.join(root, ".agents", "plugins", "marketplace.json"),
     JSON.stringify(
@@ -205,6 +218,68 @@ describe("release metadata", () => {
     const result = await syncReleaseMetadata({ root, write: false })
 
     expect(result.errors.some((err) => err.includes("gemini-extension.json is missing"))).toBe(true)
+  })
+
+  test("reports Devin manifest version drift without auto-correcting", async () => {
+    const root = await makeFixtureRoot()
+    await writeFile(
+      path.join(root, ".devin-plugin", "plugin.json"),
+      JSON.stringify({ name: "compound-engineering", version: "2.41.0" }, null, 2),
+    )
+
+    const result = await syncReleaseMetadata({ root, write: true })
+    const devinPath = path.join(root, ".devin-plugin", "plugin.json")
+    const devinUpdate = result.updates.find((u) => u.path === devinPath)
+
+    expect(devinUpdate).toBeDefined()
+    expect(devinUpdate!.changed).toBe(true)
+
+    // release-please owns version writes via extra-files; syncReleaseMetadata detects but does not correct.
+    const afterContents = JSON.parse(await Bun.file(devinPath).text())
+    expect(afterContents.version).toBe("2.41.0")
+  })
+
+  test("rewrites Devin plugin.json description on write when drifted from Claude", async () => {
+    const root = await makeFixtureRoot()
+    await writeFile(
+      path.join(root, ".claude-plugin", "plugin.json"),
+      JSON.stringify(
+        {
+          version: "2.42.0",
+          description: "AI-powered development tools for code review, research, design, and workflow automation.",
+        },
+        null,
+        2,
+      ),
+    )
+    await writeFile(
+      path.join(root, ".devin-plugin", "plugin.json"),
+      JSON.stringify(
+        {
+          name: "compound-engineering",
+          version: "2.42.0",
+          description: "stale devin description",
+        },
+        null,
+        2,
+      ),
+    )
+    const devinPath = path.join(root, ".devin-plugin", "plugin.json")
+    await syncReleaseMetadata({ root, write: true })
+
+    const afterContents = JSON.parse(await Bun.file(devinPath).text())
+    expect(afterContents.description).toBe(
+      "AI-powered development tools for code review, research, design, and workflow automation.",
+    )
+  })
+
+  test("reports missing Devin manifest as a structural error", async () => {
+    const root = await makeFixtureRoot()
+    await Bun.$`rm -rf ${path.join(root, ".devin-plugin")}`.quiet()
+
+    const result = await syncReleaseMetadata({ root, write: false })
+
+    expect(result.errors.some((err) => err.includes(".devin-plugin/plugin.json is missing"))).toBe(true)
   })
 
   test("rewrites Codex plugin.json description on write when drifted from Claude", async () => {

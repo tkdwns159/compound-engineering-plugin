@@ -23,7 +23,7 @@ import { parseFrontmatter } from "../src/utils/frontmatter"
 const repoRoot = path.join(import.meta.dir, "..")
 const cliEntry = path.join(repoRoot, "src", "index.ts")
 
-const IMPLEMENTED_TARGETS = ["opencode", "codex", "pi", "gemini"] as const
+const IMPLEMENTED_TARGETS = ["opencode", "codex", "pi", "gemini", "devin"] as const
 type Target = (typeof IMPLEMENTED_TARGETS)[number]
 
 const PLUGIN_NAMES = ["compound-engineering"] as const
@@ -171,6 +171,12 @@ function targetInvocation(target: Target, tempRoot: string): { args: string[]; r
       // Without --output gemini defaults to <cwd>/.gemini.
       const out = path.join(tempRoot, "gemini-out")
       return { args: ["--output", out], root: path.join(out, ".gemini") }
+    }
+    case "devin": {
+      // The Devin writer produces a self-contained plugin bundle (the output
+      // root IS the plugin directory: .devin-plugin/plugin.json + skills/).
+      const out = path.join(tempRoot, "devin-out")
+      return { args: ["--output", out], root: out }
     }
   }
 }
@@ -356,6 +362,22 @@ for (const pluginName of PLUGIN_NAMES) {
       expect(groups.agents.length).toBe(inventory.agents.length)
       expect(groups.skills.length).toBe(expectedSkills.length)
       expect(groups.commands.length).toBe(inventory.commands.length)
+    })
+
+    test("devin output matches the source inventory", () => {
+      const { root } = getConversion(pluginName, "devin")
+      const expectedSkills = skillsForPlatform(inventory, "devin")
+
+      // Devin plugins are a .devin-plugin/plugin.json manifest + skills/.
+      const manifest = readJson(path.join(root, ".devin-plugin", "plugin.json"))
+      expect(manifest.name).toBe(pluginName)
+
+      expect(listDirNames(path.join(root, "skills"))).toEqual(expectedSkills)
+      expectSkillDirsHaveSkillMd(path.join(root, "skills"), expectedSkills)
+
+      // Devin plugins do not carry agents or commands.
+      expect(listFileBasenames(path.join(root, "agents"), ".md")).toEqual([])
+      expect(listFileBasenames(path.join(root, "commands"), ".toml")).toEqual([])
     })
 
     test("every emitted .json parses and every emitted .md has parseable frontmatter", () => {

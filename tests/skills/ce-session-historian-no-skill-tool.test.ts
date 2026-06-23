@@ -61,7 +61,7 @@ describe("session-historian prompt no-Skill-tool regression guard", () => {
 
   test("ce-compound still dispatches the skill-local session historian prompt", () => {
     expect(COMPOUND_SKILL_BODY).toContain("references/agents/session-historian.md")
-    expect(COMPOUND_SKILL_BODY).toContain("Do not dispatch a standalone agent by type/name")
+    expect(COMPOUND_SKILL_BODY).toContain("Do not dispatch standalone typed plugin agents by type/name")
   })
 
   test("ce-compound resolves repo filter before running session discovery", () => {

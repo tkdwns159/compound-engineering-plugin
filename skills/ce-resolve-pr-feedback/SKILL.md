@@ -32,7 +32,13 @@ After determining mode, read the matching reference and follow it. Each referenc
 
 - **Full Mode** → `references/full-mode.md` (9 steps: fetch, triage, plan, parallel implement, validate, commit/push, reply/resolve, verify, summary)
 - **Targeted Mode** → `references/targeted-mode.md` (2 steps: extract thread context from URL, fix/reply/resolve via the same validate/commit/push/reply pipeline)
-- Resolver prompt asset → `references/agents/pr-comment-resolver.md` (read before dispatching resolver subagents; do not dispatch a standalone agent by type/name)
+- Resolver prompt asset → `references/agents/pr-comment-resolver.md`
+
+**Subagent dispatch convention** (applies to every `references/agents/<persona>.md` dispatch in this skill):
+- If a matching named subagent profile is available in the current harness (e.g. Devin CLI profile `ce-resolve-pr-feedback-<persona>`), dispatch with `profile: ce-resolve-pr-feedback-<persona>` and pass only the task-specific context — the persona is already the profile's system prompt, so do not also inject the file contents.
+- Otherwise, read the matching file and seed a generic subagent with that prompt content plus the task-specific context.
+
+Do not dispatch standalone typed plugin agents by type/name — those cache at session start on some platforms. This rule does not forbid named subagent profiles (e.g. Devin CLI custom profiles), which load fresh per dispatch.
 
 ## Scripts
 

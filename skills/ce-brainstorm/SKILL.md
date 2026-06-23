@@ -164,7 +164,13 @@ If the scan and scout surface nothing relevant, say so and continue. Two rules g
 
 **Slack context** (opt-in, Standard and Deep only) — never auto-dispatch. Route by condition:
 
-- **Tools available + user asked**: Read `references/agents/slack-researcher.md` and dispatch a generic subagent seeded with that local prompt plus a brief summary of the brainstorm topic alongside Phase 1.1 work. Do not dispatch a standalone agent by type/name. Incorporate findings into constraint and context awareness.
+**Subagent dispatch convention** (applies to every `references/agents/<persona>.md` dispatch in this skill):
+- If a matching named subagent profile is available in the current harness (e.g. Devin CLI profile `ce-brainstorm-<persona>`), dispatch with `profile: ce-brainstorm-<persona>` and pass only the task-specific context — the persona is already the profile's system prompt, so do not also inject the file contents.
+- Otherwise, read the matching file and seed a generic subagent with that prompt content plus the task-specific context.
+
+Do not dispatch standalone typed plugin agents by type/name — those cache at session start on some platforms. This rule does not forbid named subagent profiles (e.g. Devin CLI custom profiles), which load fresh per dispatch.
+
+- **Tools available + user asked**: Dispatch the `slack-researcher` specialist per the convention above, plus a brief summary of the brainstorm topic alongside Phase 1.1 work. Incorporate findings into constraint and context awareness.
 - **Tools available + user didn't ask**: Note in output: "Slack tools detected. Ask me to search Slack for organizational context at any point, or include it in your next prompt."
 - **No tools + user asked**: Note in output: "Slack context was requested but no Slack tools are available. Install and authenticate the Slack plugin to enable organizational context search."
 

@@ -22,6 +22,14 @@ export function resolveTargetOutputRoot(options: {
     const base = hasExplicitOutput ? outputRoot : process.cwd()
     return path.join(base, ".kiro")
   }
+  if (targetName === "devin") {
+    // The Devin writer produces a self-contained plugin *source* bundle
+    // (`.devin-plugin/plugin.json` + `skills/`) that the user installs with
+    // `devin plugins install <path>`. With an explicit --output, honor it as
+    // the plugin root. Without one, default to a build artifact directory so
+    // the bundle does not collide with Devin's own `.devin/` project config.
+    return hasExplicitOutput ? outputRoot : path.join(process.cwd(), ".devin-dist")
+  }
   if (targetName === "opencode") {
     // Without an explicit --output, default to the OpenCode global-config root
     // (OPENCODE_CONFIG_DIR or ~/.config/opencode). With an explicit --output,

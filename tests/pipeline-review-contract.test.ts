@@ -205,9 +205,9 @@ describe("ce:work-beta codex delegation contract", () => {
     const content = await readRepoFile("skills/ce-work-beta/SKILL.md")
 
     const gateIdx = content.indexOf("Delegation routing gate")
-    const strategyTableIdx = content.indexOf("| **Inline**")
+    const decisionMatrixIdx = content.indexOf("| **Inline+worktree**")
     expect(gateIdx).toBeGreaterThan(0)
-    expect(gateIdx).toBeLessThan(strategyTableIdx)
+    expect(gateIdx).toBeLessThan(decisionMatrixIdx)
     expect(content).toContain("Codex delegation requires a plan file")
   })
 

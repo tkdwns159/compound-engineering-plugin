@@ -76,6 +76,13 @@ const detectableTools: DetectableTool[] = [
       path.join(cwd, ".qwen"),
     ],
   },
+  {
+    name: "devin",
+    detectPaths: (home, cwd) => [
+      path.join(home, ".config", "devin"),
+      path.join(cwd, ".devin"),
+    ],
+  },
 ]
 
 export async function detectInstalledTools(

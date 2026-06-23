@@ -25,7 +25,7 @@ export default defineCommand({
     to: {
       type: "string",
       default: "opencode",
-      description: "Target format (opencode | codex | pi | gemini | all)",
+      description: "Target format (opencode | codex | pi | gemini | devin | all)",
     },
     output: {
       type: "string",
@@ -98,7 +98,7 @@ export default defineCommand({
       const activeTargets = detected.filter((t) => t.detected && targets[t.name]?.implemented)
 
       if (activeTargets.length === 0) {
-        console.log("No installable AI coding tools detected. Use native plugin install for Claude Code, Copilot, Droid, OpenCode, Pi, and Qwen.")
+        console.log("No installable AI coding tools detected. Use native plugin install for Claude Code, Copilot, Droid, OpenCode, Pi, Qwen, and Devin.")
         return
       }
 
@@ -134,6 +134,9 @@ export default defineCommand({
           tool.name === "opencode" ? resolveOpenCodeWriteScope(hasExplicitOutput, undefined) : undefined
         await handler.write(root, bundle, writeScope)
         console.log(`Converted ${plugin.manifest.name} to ${tool.name} at ${root}`)
+        if (tool.name === "devin") {
+          console.log(`Install with: devin plugins install ${root}`)
+        }
       }
 
       if (activeTargets.some((t) => t.name === "codex")) {
@@ -171,6 +174,9 @@ export default defineCommand({
       targetName === "opencode" ? resolveOpenCodeWriteScope(hasExplicitOutput, resolvedScope) : resolvedScope
     await target.write(primaryOutputRoot, bundle, effectiveScope)
     console.log(`Converted ${plugin.manifest.name} to ${targetName} at ${primaryOutputRoot}`)
+    if (targetName === "devin") {
+      console.log(`Install with: devin plugins install ${primaryOutputRoot}`)
+    }
 
     const extraTargets = parseExtraTargets(args.also)
     const allTargets = [targetName, ...extraTargets]
@@ -204,6 +210,9 @@ export default defineCommand({
           : handler.defaultScope
       await handler.write(extraRoot, extraBundle, extraScope)
       console.log(`Converted ${plugin.manifest.name} to ${extra} at ${extraRoot}`)
+      if (extra === "devin") {
+        console.log(`Install with: devin plugins install ${extraRoot}`)
+      }
     }
 
     if (allTargets.includes("codex")) {

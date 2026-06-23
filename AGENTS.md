@@ -48,6 +48,7 @@ skills/           Compound Engineering plugin skills
 .claude-plugin/   Claude plugin manifest and marketplace catalog metadata
 .codex-plugin/    Codex plugin manifest
 .cursor-plugin/   Cursor plugin manifest and marketplace catalog metadata
+.devin-plugin/    Devin CLI plugin manifest
 .opencode/        OpenCode package entrypoint and install docs
 .pi/              Pi extension entrypoint
 tests/            Converter, writer, and CLI tests + fixtures

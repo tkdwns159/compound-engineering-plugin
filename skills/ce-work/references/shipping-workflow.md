@@ -105,7 +105,17 @@ This file contains the shipping workflow (Phase 3-4). It is loaded when all Phas
 
    If the user prefers to commit without creating a PR, load the `ce-commit` skill instead.
 
-3. **Notify User**
+3. **Worktree merge-back and cleanup** (only when a git-fallback worktree was created during execution setup)
+
+   If the work ran in a `.worktrees/<branch>` worktree created via the `ce-worktree` Step 2 git fallback (not a harness-native worktree, not pre-existing isolation), invoke the `ce-worktree` skill's **Merge-back and cleanup** flow now that the branch is pushed / the PR is opened. This folds the worktree branch into the local base branch with `--no-ff`, runs the test suite on the merged tree, removes the worktree, and deletes the local branch (the remote branch stays open for the PR).
+
+   Skip this step when:
+   - The work happened in the current checkout (no worktree was created), or
+   - Isolation came from a harness-native worktree tool or pre-existing isolation (Step 0/Step 1) — those are not yours to tear down.
+
+   The PR remains the canonical integration path; the merge-back is a local convenience that reclaims the worktree and keeps the local base branch current.
+
+4. **Notify User**
    - Summarize what was completed
    - Link to PR (if one was created)
    - Note any follow-up work needed

@@ -229,6 +229,27 @@ export async function syncReleaseMetadata(options: SyncOptions = {}): Promise<Me
     }
   }
 
+  // Devin native plugin manifest version sync is detect-only. release-please
+  // owns the write via extra-files, same as Gemini/Codex native manifests.
+  const compoundDevinPath = path.join(root, ".devin-plugin", "plugin.json")
+  try {
+    const compoundDevin = await readJson<ClaudePluginManifest>(compoundDevinPath)
+    let devinChanged = compoundDevin.version !== expectedCompoundVersion
+    if (compoundDevin.description !== compoundDescription) {
+      compoundDevin.description = compoundDescription
+      devinChanged = true
+    }
+    updates.push({ path: compoundDevinPath, changed: devinChanged })
+    if (write && devinChanged) await writeJson(compoundDevinPath, compoundDevin)
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      errors.push(`${compoundDevinPath} is missing but ${compoundClaudePath} exists. Devin manifest parity required.`)
+      updates.push({ path: compoundDevinPath, changed: false })
+    } else {
+      throw err
+    }
+  }
+
   changed = false
   if (versions.marketplace && marketplaceClaude.metadata.version !== versions.marketplace) {
     marketplaceClaude.metadata.version = versions.marketplace

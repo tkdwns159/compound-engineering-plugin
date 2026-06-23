@@ -260,6 +260,24 @@ Update it later with:
 gemini extensions update compound-engineering
 ```
 
+### Devin CLI
+
+Devin reads the native `.devin-plugin/plugin.json` manifest in this repository, so you can install directly from GitHub:
+
+```bash
+devin plugins install EveryInc/compound-engineering-plugin
+```
+
+Update later with `devin plugins update compound-engineering`, and remove with `devin plugins remove compound-engineering`.
+
+The native install ships skills with their original frontmatter. For full Devin fidelity — translating `disable-model-invocation` to `triggers: [user]` and Claude tool names (`Read`, `Bash(gh *)`, `AskUserQuestion`) to Devin's lowercase `allowed-tools` (`read`, `exec`) — generate a Devin-shaped bundle with the Bun converter and install that instead:
+
+```bash
+bun install
+bun run src/index.ts convert . --to devin --output ./build/devin-plugin
+devin plugins install ./build/devin-plugin
+```
+
 ### Existing Installs
 
 Marketplace-managed installs should move to the root plugin layout when the marketplace/plugin version updates. On Claude Code, refresh the cached marketplace definition before updating the plugin:
@@ -343,7 +361,7 @@ gemini extensions install "$PWD"
 
 ## Limitations
 
-OpenCode, Pi, and Gemini use native package/plugin loading from this repository. The Bun CLI remains for repository development and converter maintenance, not normal installation.
+OpenCode, Pi, Gemini, and Devin use native package/plugin loading from this repository. The Bun CLI remains for repository development and converter maintenance, not normal installation.
 
 Release versions are owned by release automation. Routine feature PRs should not hand-bump plugin or marketplace manifest versions.
 

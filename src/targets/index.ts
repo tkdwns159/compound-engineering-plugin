@@ -3,10 +3,12 @@ import { convertClaudeToOpenCode, type ClaudeToOpenCodeOptions } from "../conver
 import { convertClaudeToCodex } from "../converters/claude-to-codex"
 import { convertClaudeToPi } from "../converters/claude-to-pi"
 import { convertClaudeToGemini } from "../converters/claude-to-gemini"
+import { convertClaudeToDevin } from "../converters/claude-to-devin"
 import { writeOpenCodeBundle } from "./opencode"
 import { writeCodexBundle } from "./codex"
 import { writePiBundle } from "./pi"
 import { writeGeminiBundle } from "./gemini"
+import { writeDevinBundle } from "./devin"
 
 export type TargetScope = "global" | "workspace"
 
@@ -72,5 +74,11 @@ export const targets: Record<string, TargetHandler> = {
     implemented: true,
     convert: convertClaudeToGemini as TargetHandler["convert"],
     write: writeGeminiBundle as TargetHandler["write"],
+  },
+  devin: {
+    name: "devin",
+    implemented: true,
+    convert: convertClaudeToDevin as TargetHandler["convert"],
+    write: writeDevinBundle as TargetHandler["write"],
   },
 }

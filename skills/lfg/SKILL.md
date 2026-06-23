@@ -115,6 +115,12 @@ When invoking any skill referenced below, resolve its name against the available
 
    - Do NOT continue looping. The autopilot contract is "make residuals durable, then exit." Proceed to step 10.
 
-10. Output `<promise>DONE</promise>` when complete
+10. **Worktree merge-back and cleanup** (only when the run used a git-fallback worktree)
+
+    If the work ran in a `.worktrees/<branch>` worktree created via the `ce-worktree` Step 2 git fallback (not a harness-native worktree, not pre-existing isolation), invoke the `ce-worktree` skill's **Merge-back and cleanup** flow now that the branch is pushed, the PR is open, and CI has settled. This folds the worktree branch into the local base branch with `--no-ff`, runs the test suite on the merged tree, removes the worktree, and deletes the local branch (the remote branch stays open for the PR).
+
+    This step runs **after** the CI watch loop (step 9) so the working tree is still available if CI failures needed in-tree fixes. Skip it when the run did not create a git-fallback worktree (current-checkout work, harness-native worktree, or pre-existing isolation). The PR remains the canonical integration path; the merge-back is a local convenience that reclaims the worktree and keeps the local base branch current.
+
+11. Output `<promise>DONE</promise>` when complete
 
 Start with step 1 now. Remember: plan FIRST, then work. Never skip the plan.

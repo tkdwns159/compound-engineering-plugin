@@ -86,7 +86,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    Then ask: "Continue working on `[current_branch]`, or create a new branch?"
    - If continuing (with or without rename), proceed to step 3
-   - If creating new, follow Option A or B below
+   - If creating new, follow Option A below
 
    **If on the default branch**, choose how to proceed:
 
@@ -97,22 +97,12 @@ Determine how to proceed based on what was provided in `<input_document>`.
    ```
    Use a meaningful name based on the work (e.g., `feat/user-authentication`, `fix/email-validation`).
 
-   **Option B: Use a worktree (recommended for parallel development)**
-   ```bash
-   skill: ce-worktree
-   # Ensures isolation: detects an existing worktree, prefers the harness's
-   # native worktree tool, else creates one from the default branch
-   ```
-
-   **Option C: Continue on the default branch**
+   **Option B: Continue on the default branch**
    - Requires explicit user confirmation
    - Only proceed after user explicitly says "yes, commit to [default_branch]"
    - Never commit directly to the default branch without explicit permission
 
-   **Recommendation**: Use worktree if:
-   - You want to work on multiple features simultaneously
-   - You want to keep the default branch clean while experimenting
-   - You plan to switch between branches frequently
+   Worktree isolation, if needed, is decided in Step 4 alongside the execution strategy — not here. Step 2 handles branch state only.
 
 3. **Create Task List** _(skip if Phase 0 already built one, or if Phase 0 routed as Trivial)_
    - Use the platform's task tracking tool (`TaskCreate`/`TaskUpdate`/`TaskList` in Claude Code, `update_plan` in Codex, or the equivalent on other harnesses) to break the plan into actionable tasks
@@ -129,15 +119,28 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
 4. **Choose Execution Strategy**
 
-   After creating the task list, decide how to execute based on the plan's size and dependency structure:
+   After creating the task list, decide how to execute based on the plan's size, dependency structure, and harness capabilities.
 
-   | Strategy | When to use |
-   |----------|-------------|
-   | **Inline** | 1-2 small tasks, or tasks needing user interaction mid-flight. **Default for bare-prompt work** — bare prompts rarely produce enough structured context to justify subagent dispatch |
-   | **Serial subagents** | 3+ tasks with dependencies between them. Each subagent gets a fresh context window focused on one unit — prevents context degradation across many tasks. Requires plan-unit metadata (Goal, Files, Approach, Test scenarios) |
-   | **Parallel subagents** | 3+ tasks that pass the Parallel Safety Check (below). Dispatch independent units simultaneously, run dependent units after their prerequisites complete. Requires plan-unit metadata |
+   **Capability detection — CWD switching**
 
-   **Parallel Safety Check** — required before choosing parallel dispatch:
+   Before choosing a path, determine whether the harness supports reliable CWD switching — a `cd` that propagates to file operations, not just a shell-only `cd` that leaves file operations in the original directory. Two signals indicate reliable CWD switching:
+
+   - A native worktree tool exists (`EnterWorktree` / `WorktreeCreate` tool, `/worktree` command, or `--worktree` flag — the same primitives ce-worktree Step 1 detects). If the harness has one, it manages CWD switching as part of worktree entry.
+   - The harness's file-operation layer follows shell `cd`. On Claude Code, file operations follow the shell's working directory. On Codex, Gemini, and Pi, verify per-platform — if uncertain, treat CWD switching as unreliable.
+
+   Unknown harnesses default to unreliable. When CWD switching is unreliable, the inline+worktree path is not offered; the fallback paths (inline-on-current-branch or dispatch) are used instead.
+
+   **Decision matrix**
+
+   | Path | When to choose | Orchestrator location |
+   |------|----------------|----------------------|
+   | **Inline+worktree** | CWD switching is reliable AND work is small (1-2 tasks) or needs user interaction mid-flight. Invoke `ce-worktree` to create the worktree and `cd` into it. The orchestrator works inside the worktree for the duration. | Inside the worktree |
+   | **Inline-on-current-branch** | CWD switching is unreliable AND no subagent primitive is available, or the user prefers to work without isolation. The orchestrator works on the Step 2 branch in the current checkout. **Default for bare-prompt work** — bare prompts rarely produce enough structured context to justify subagent dispatch. | Current checkout, Step 2 branch |
+   | **Dispatch-worker-into-worktree** | Subagent primitive is available AND work has 3+ tasks. Worker subagents get per-agent worktree isolation (harness primitive). The orchestrator stays on the Step 2 branch and serves as the integration point. Serial vs parallel dispatch is an orthogonal decision based on file overlap (see Parallel Safety Check below). | Current checkout, Step 2 branch |
+
+   **Orchestrator-stays-put rule.** In dispatch mode, the orchestrator never enters a worktree. The Step 2 branch is the integration branch — worker branches merge into it in dependency order via the post-batch flows below. This avoids the failure mode where the orchestrator `cd`s into a worktree that file operations cannot follow, leaving the worktree unused while work happens on a branch in the main checkout.
+
+   **Parallel Safety Check** — required before choosing parallel dispatch within the dispatch-worker-into-worktree path:
 
    1. Build a file-to-unit mapping from every candidate unit's `Files:` section (Create, Modify, and Test paths)
    2. Check for intersection — any file path appearing in 2+ units means overlap
@@ -310,7 +313,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
    For UI work with Figma designs:
 
    - Implement components following design specs
-   - Read `references/agents/figma-design-sync.md` and dispatch a generic subagent seeded with that local prompt to compare implementation against the Figma design. Do not dispatch a standalone agent by type/name.
+   - Dispatch the `figma-design-sync` specialist to compare implementation against the Figma design, following the subagent dispatch convention: if a named subagent profile is available (e.g. Devin CLI `ce-work-figma-design-sync`), dispatch with `profile: ce-work-figma-design-sync` and pass only the task context; otherwise read `references/agents/figma-design-sync.md` and seed a generic subagent with that prompt content plus the task context. Do not dispatch standalone typed plugin agents by type/name.
    - Fix visual differences identified
    - Repeat until implementation matches design
 

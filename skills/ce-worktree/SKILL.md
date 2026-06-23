@@ -57,6 +57,58 @@ cd .worktrees/<branch>                     # switch to a worktree
 cd "$(git rev-parse --show-toplevel)"      # return to the current checkout root
 ```
 
+## Merge-back and cleanup (after work finishes)
+
+When the work in a **git-fallback worktree** (created in Step 2) is complete and the branch has been pushed / a PR opened, merge the worktree's branch back into its base branch locally and reclaim the worktree. This keeps the PR-based flow intact — the remote branch stays open for the PR — while folding the work into the local base branch and freeing the worktree's disk space.
+
+**Skip this entirely for:**
+- **Harness-native worktrees (Step 1)** — the harness owns their lifecycle; a behind-the-back merge/remove creates phantom state it cannot see.
+- **Pre-existing isolation detected in Step 0** — you did not create it, so do not tear it down. Work in place and let the owner manage cleanup.
+
+**Only run this for a `.worktrees/<branch>` worktree you created via the Step 2 git fallback, and only after the branch is pushed (and a PR opened, if the calling flow creates one).** Never run it mid-work or before the branch is pushed — deleting the local branch before the push loses the work.
+
+Order of operations — **merge -> test -> remove worktree -> delete local branch** — with a hard rule: any failure aborts the merge-back but still reclaims the worktree; never force a merge or force-delete a branch to complete cleanup.
+
+1. **Verify the work is shipped from the worktree.** From the worktree root, confirm the working tree is clean (`git status --porcelain`) and the branch is pushed (`git rev-parse --abbrev-ref --symbolic-full-name @{u}` resolves and `git status -sb` shows no unpushed commits). If there are uncommitted changes, commit or stash first. If the branch is not yet pushed, stop here and push (or let the calling flow's `ce-commit-push-pr` handle it) before continuing.
+
+2. **Capture the worktree branch name and resolve the base branch.** Record the current branch name (`git branch --show-current`) before leaving the worktree. Re-derive the base branch with the same logic as Step 2 — origin's default branch, else `main`:
+   ```bash
+   base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+   [ -z "$base" ] && base=$(git rev-parse --verify origin/main >/dev/null 2>&1 && echo main || echo master)
+   ```
+
+3. **Return to the main checkout and switch to the base branch.** The main checkout is the parent of the common git dir:
+   ```bash
+   common_git_dir=$(cd "$(git rev-parse --git-common-dir)" && pwd -P)
+   main_root=$(dirname "$common_git_dir")
+   cd "$main_root"
+   git switch "$base"
+   ```
+   If `git switch` fails because the main checkout has uncommitted changes or an in-progress operation, **abort the merge-back** (skip to step 6) — do not disturb the user's main checkout. The PR remains the integration path; the worktree can still be reclaimed.
+
+4. **Merge the worktree branch with `--no-ff`** so the branch topology is preserved:
+   ```bash
+   git merge --no-ff "<worktree-branch>"
+   ```
+   **On conflict: `git merge --abort` immediately.** Do not hand-resolve — a silent side-pick discards one side's intent. Abort the merge-back and skip to step 6 (reclaim the worktree; leave the local branch for the PR). Report the conflict to the user so they can merge manually if they want the local base branch updated.
+
+5. **Run the project test suite** on the merged tree. If tests fail, diagnose and fix in the base branch, or `git reset --hard HEAD~1` to drop the merge commit and skip the local merge-back (the PR still carries the work). Do not leave the base branch red.
+
+6. **Reclaim the worktree** (run this in all cases — success or aborted merge-back):
+   ```bash
+   # Still in the main checkout root
+   git worktree remove ".worktrees/<worktree-branch>"
+   ```
+   If removal refuses because the worktree has untracked/modified files, do **not** force (`--force`) without surfacing it — report the state and let the user decide. The worktree dir is gitignored, so leftover contents do not dirty the repo.
+
+7. **Delete the local branch only if the merge-back succeeded.** The remote branch stays for the PR; this only drops the local ref:
+   ```bash
+   git branch -d "<worktree-branch>"     # -d refuses unmerged branches — the safety we want
+   ```
+   If the merge-back was aborted (steps 3-5 bailed out), **skip this** — do not use `-D`. Leave the local branch ref; it is harmless and the PR needs the remote branch regardless.
+
+8. **Report.** State whether the local base branch was updated with the merge, the worktree was removed, and whether the local branch was deleted or left in place. Remind the user the PR (if opened) is still the canonical integration path on the remote branch.
+
 ## When to create a worktree
 
 Create one (Step 1/2) only when you are **not** already isolated and you need a separate workspace:
@@ -69,6 +121,8 @@ Do not create a worktree for single-task work that can happen on a branch in the
 ## Integration
 
 `ce-work` and `ce-code-review` offer this skill as an option. When the user selects "worktree" in those flows, run Step 0 first: if the work is already isolated, proceed in place; otherwise create one (native tool preferred) with a meaningful branch name derived from the work description.
+
+`ce-work` (Phase 4) and `lfg` (after the PR step) invoke the **Merge-back and cleanup** flow above once the branch is pushed / the PR is opened, so a git-fallback worktree is folded into the local base branch and reclaimed automatically at the end of the run. Harness-native and pre-existing worktrees are left untouched.
 
 ## Troubleshooting
 

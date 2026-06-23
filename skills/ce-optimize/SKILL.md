@@ -218,7 +218,13 @@ Check whether the input is:
 
 ### 0.3 Search Prior Learnings
 
-Read `references/agents/learnings-researcher.md` and dispatch a generic subagent seeded with that local prompt to search for prior optimization work on similar topics. Do not dispatch a standalone agent by type/name. If relevant learnings exist, incorporate them into the approach.
+**Subagent dispatch convention** (applies to every `references/agents/<persona>.md` dispatch in this skill):
+- If a matching named subagent profile is available in the current harness (e.g. Devin CLI profile `ce-optimize-<persona>`), dispatch with `profile: ce-optimize-<persona>` and pass only the task-specific context — the persona is already the profile's system prompt, so do not also inject the file contents.
+- Otherwise, read the matching file and seed a generic subagent with that prompt content plus the task-specific context.
+
+Do not dispatch standalone typed plugin agents by type/name — those cache at session start on some platforms. This rule does not forbid named subagent profiles (e.g. Devin CLI custom profiles), which load fresh per dispatch.
+
+Dispatch the `learnings-researcher` specialist per the convention above to search for prior optimization work on similar topics. If relevant learnings exist, incorporate them into the approach.
 
 ### 0.4 Run Identity Detection
 
@@ -373,7 +379,7 @@ Read the code within `scope.mutable` to understand:
 - Obvious improvement opportunities
 - Constraints and dependencies between components
 
-Optionally read `references/agents/repo-research-analyst.md` and dispatch a generic subagent seeded with that local prompt for deeper codebase analysis if the scope is large or unfamiliar. Do not dispatch a standalone agent by type/name.
+Optionally dispatch the `repo-research-analyst` specialist per the subagent dispatch convention above for deeper codebase analysis if the scope is large or unfamiliar.
 
 ### 2.2 Generate Hypothesis List
 

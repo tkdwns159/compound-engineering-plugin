@@ -280,7 +280,12 @@ Then continue to Phase 1 without a blocking question.
 
 ### Phase 1: Gather Context
 
-All specialist research and deepening prompts used in this phase are skill-local prompt assets under `references/agents/`. When dispatching one, read the matching file and seed a generic subagent with that prompt content plus the task-specific context below. Do not dispatch standalone agents by type/name.
+All specialist research and deepening prompts used in this phase are skill-local prompt assets under `references/agents/`. When dispatching one:
+
+- If a matching named subagent profile is available in the current harness (e.g. Devin CLI profile `ce-plan-<persona>`), dispatch with `profile: ce-plan-<persona>` and pass only the task-specific context — the persona is already the profile's system prompt, so do not also inject the file contents.
+- Otherwise, read the matching file and seed a generic subagent with that prompt content plus the task-specific context below.
+
+Do not dispatch standalone typed plugin agents by type/name — those cache at session start on some platforms and won't reflect edits. This rule does not forbid named subagent profiles (e.g. Devin CLI custom profiles), which load fresh per dispatch.
 
 Model tiering lives in this caller, not in prompt assets. Local prompt files have no frontmatter. Use the platform's mid-tier model for external/organizational research prompts such as `slack-researcher` and `web-researcher` when the current harness exposes a known override; otherwise omit the override and inherit. Use inherited model for high-judgment architecture, migration, and planning-deepening prompts unless the harness has an established cheaper capable tier.
 

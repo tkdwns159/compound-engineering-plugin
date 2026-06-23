@@ -206,7 +206,13 @@ Launch research subagents. Each returns text data to the orchestrator.
 #### 4. **Session History** (internal flow after launching the parallel block — only if the user opted in)
    - **Skip entirely** if the user declined session history in the follow-up question, if running in lightweight mode, or if running in headless mode.
    - Run session discovery, branch/keyword filtering, scan-window selection, deep-dive selection, and per-session extraction directly inside this skill using `scripts/session-history/`.
-   - Read the skill-local synthesis prompt at `references/agents/session-historian.md`, then dispatch a generic subagent using that prompt content. Do not dispatch a standalone agent by type/name.
+   - Read the skill-local synthesis prompt at `references/agents/session-historian.md`, then dispatch using the subagent dispatch convention below.
+
+   **Subagent dispatch convention** (applies to every `references/agents/<persona>.md` dispatch in this skill):
+   - If a matching named subagent profile is available in the current harness (e.g. Devin CLI profile `ce-compound-<persona>`), dispatch with `profile: ce-compound-<persona>` and pass only the task-specific context — the persona is already the profile's system prompt, so do not also inject the file contents.
+   - Otherwise, read the matching file and seed a generic subagent with that prompt content plus the task-specific context.
+
+   Do not dispatch standalone typed plugin agents by type/name — those cache at session start on some platforms. This rule does not forbid named subagent profiles (e.g. Devin CLI custom profiles), which load fresh per dispatch.
 
    **Session-history payload — keep tight.** A long, keyword-rich payload licenses widening. Use this shape:
 
@@ -438,7 +444,7 @@ After the learning is written and the refresh decision is made, check whether th
 
 <parallel_tasks>
 
-Based on problem type, optionally dispatch generic subagents seeded with local prompt assets from `references/agents/` to review the documentation. Do not dispatch standalone agents by type/name.
+Based on problem type, optionally dispatch subagents for the local prompt assets from `references/agents/` to review the documentation, following the subagent dispatch convention above.
 
 - **performance_issue** → `references/agents/performance-oracle.md`
 - **security_issue** → `references/agents/security-sentinel.md`

@@ -261,6 +261,12 @@ echo "$SCRATCH_DIR"
 
 Use the echoed absolute path (`/tmp/compound-engineering/ce-ideate/<run-id>`) as `<scratch-dir>` for every subsequent checkpoint write and cache read in this run. The run directory is not deleted on completion — the V15 cache is session-scoped and reused across run-ids, the checkpoints follow the cross-invocation-reusable convention, and in the no-repo case the deliverable itself is written here (see `references/post-ideation-workflow.md` Phase 4 and §5.5).
 
+**Subagent dispatch convention** (applies to every `references/agents/<persona>.md` dispatch in this skill):
+- If a matching named subagent profile is available in the current harness (e.g. Devin CLI profile `ce-ideate-<persona>`), dispatch with `profile: ce-ideate-<persona>` and pass only the task-specific context — the persona is already the profile's system prompt, so do not also inject the file contents.
+- Otherwise, read the matching file and seed a generic subagent with that prompt content plus the task-specific context.
+
+Do not dispatch standalone typed plugin agents by type/name — those cache at session start on some platforms. This rule does not forbid named subagent profiles (e.g. Devin CLI custom profiles), which load fresh per dispatch.
+
 Run grounding agents in parallel in the **foreground** (do not background — results are needed before Phase 2):
 
 **Repo mode dispatch:**
